@@ -1,0 +1,26 @@
+FROM golang:1.24-alpine
+ENV GOTOOLCHAIN=auto
+
+# Install btrfs-progs and required tools
+RUN apk add --no-cache \
+    btrfs-progs \
+    e2fsprogs \
+    util-linux \
+    zstd \
+    rclone \
+    bash
+
+# Download MinIO server for S3 integration tests
+RUN wget -q https://dl.min.io/server/minio/release/linux-amd64/minio -O /usr/local/bin/minio && \
+    chmod +x /usr/local/bin/minio
+
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+
+# Create the integration test runner script
+COPY integration/run-tests.sh /run-tests.sh
+RUN chmod +x /run-tests.sh
+
+ENTRYPOINT ["/run-tests.sh"]
